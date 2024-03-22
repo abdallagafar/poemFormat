@@ -1,0 +1,78 @@
+/*
+ * Default formatting rules for poemFormat markup
+ * 2024-02-26: First created by Abdalla G. M. Ahmed
+ *
+ */
+
+p.beit {
+    text-align: center;
+    white-space: pre;
+}
+.bFree {
+    text-align: right;
+    padding-right: 50px;
+}
+.bComment {                                                                     /* Primarily for embedded notes */
+    text-align: justify;
+}
+.bCommentCenter {                                                               /* Primarily for embedded notes */
+    text-align: center;
+}
+.bEmph {
+    color: #DC143C;
+}
+span.bStaggerOffset {
+    display: inline-block;
+    width: 75px;
+}
+span.bGap {
+    display: inline-block;
+    width: 0;
+}
+span.bPrefix, span.bSuffix {
+    width: 25px;
+    display: inline-block;
+    /*color: red;*/
+}
+span.bPrefix {
+    text-align: end;
+}
+span.bSuffix {
+    text-align: start;
+}
+span.bJustified {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: space-between; /* Justify content */
+}
+.abyat hr {
+    margin: 20px auto;
+}
+.abyat {
+    user-select: text;
+    -webkit-user-select: text;
+}
+.abyat, .musdar {
+    display: table;
+}
+.poemBody {
+    display: table-cell;
+    width: 500px;
+    vertical-align: middle;
+    padding-left: 20px;
+}
+.poemGutter {
+    display: table-cell;
+    vertical-align: middle;
+    padding-right: 20px;                                                        /* Add an offset from separating line */
+    opacity: 0.5;                                                               /* Grayout */
+    border-right: solid 1px #aaa;                                               /* Splitting line from body */
+    white-space: pre-wrap;                                                      /* Preserve line breaks while allowing long lines to wrap */
+}
+.bDimOthers .beit, .bDimOthers hr {
+    opacity: 0.25;
+}
+.bDimOthers .bEmph {
+    color: inherit;
+    opacity: 1;
+}

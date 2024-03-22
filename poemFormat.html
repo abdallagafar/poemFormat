@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interactive Poem Formatter</title>
+<!-- Include CSS file -->
+<link rel="stylesheet" href="poemFormat.css">
+<!-- Include JavaScript file -->
+<script src="poemFormat.js" defer></script>
+<style>
+html {
+    -webkit-text-size-adjust: 100%; /* Prevent font scaling in landscape */
+}
+
+html, body {
+    height: 100%;
+    margin: 5px; /* Ensure there's no default margin */
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f5f5f5;
+}
+
+#container {
+    display: flex;
+    flex-direction: row-reverse;
+    height: 100vh;
+    padding: 0px;
+}
+
+#displayPane, #textEntry {
+    flex: 1;
+    margin: 0 5px;
+    padding: 5px;
+    border-radius: 5px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    background: #fffcf3;
+    overflow: auto;
+    /* height: calc(100vh - 60px - 150px); /* Adjusted for padding and margin */
+    height: calc(100vh - 60px);
+    box-sizing: border-box; /* Include padding in the height calculation */
+}
+#textEntry {
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    color: inherit;
+    resize: none; /* Disable resizing for the textarea */
+    flex: 0 0 45%; /* Adjusted width to 30% */
+}
+hr {
+  border: 0;
+  height: 2px;
+  background-color: #e0e0e0; /* or any color */
+  margin: 20px 0; /* adjust spacing around the hr */
+}
+
+</style>
+
+<script>
+
+function $(id) { return document.getElementById(id); }
+
+function handleTextEntryChange() {
+    $('displayPane').innerHTML = (
+        $('textEntry').value
+        .split(/\n={3,}\n/)
+        .map(function(txt) { return '<div class="abyat" data-options="16">'+txt+'</div>'; })      // data-attribs="dir=&#34;ltr&#34;"
+        .join('\n<hr>\n')
+    );
+    document.querySelectorAll('.abyat').forEach(function(poem) {
+        poem.innerHTML = poemFormat(poem);
+    });
+}
+
+// Add event listener to handle text entry changes once the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('textEntry').addEventListener(
+        'input', handleTextEntryChange
+    );
+});
+</script>
+
+</head>
+<body>
+ <div id="instructions">
+أدخل الأبيات التي ترغب في تنسيقها في المربّع إلى اليمين، كلّ بيت في سطر جديد، وسيتم التنسيق وفق القواعد التالية:
+    <ul>
+        <li>أدخل مسافتين أو أكثر بين أجزاء البيت (من واحد إلى أربعة أجزاء)</li>
+        <li>ضع نقطة واحدة على كلّ جانب للبيت لوضعه في الوسط، ونقطتين على كلّ جانب لمساواة عرضه بأنصاف الأبيات</li>
+        <li>ضع علامة تعجّب "!" في بداية السطر لإدراج تعليق بين الأبيات</li>
+        <li>استخدم فاصل "+++"، ثلاثة أو أكثر، لبدء قصيدة جديدة</li>
+        <li>الأبيات الطويلة يمكن قسمتها على سطرين، ووضع مسافتين "  " أو أكثر قبل عجز الأبيات</li>
+        <li>استتخدم أربعة فواصل "----" لإدراج خط فاصل بعرض الأبيات </li>
+    </ul>
+</div>
+<div id="container">
+    <div id="displayPane"></div>
+    <textarea id="textEntry">
+يا الطبيعة الواديك ساكن  مافي متلك قط في الأماكن
+يا جمال النال في ثراكن  يا حلاة البرعن أراكن
+بي قفاهن تور قرنو ماكن  لا غشن لا شافن مساكن
+.. في الخزام والشيح والبراح ..
+
++++
+
+! مثال للأبيات الطويلة
+إحساسي بيك مااظن في حاجة بتوصفه
+               آمنت بيك، يا ألطف إنسان أعرفه
+إنسان فريد لاح من بعيد زي أحلى عيد
+              زار عالمي وقال ليّ داير استكشفه
+
++++
+
+! يمكن دمج أجزاء البيت، مثلا
+لقيت اليوم من أهوى   وقلبي سائرٌ وِفقه
+رفيقٌ غايةٌ في الحسن حقّا نعمة الرفقة
+! بدلا عن:
+لقيت اليوم من أهوى   وقلبي سائرٌ وِفقه
+رفيقٌ غايةٌ في الحسـ  ـن حقّا نعمة الرفقة
+
++++
+
+!يمكن استخدام بعض تاقات التنسيق، <a href="https://sudan.abdallagafar.com/index.php/مستخدم:عبد_الله_جعفر/مسدار_الحنك">مثلا</a>:
+<b>أوعك</b> تمشي لي واحدة وتقول "نتعرّف"
+اتعرّف براك، شوف ليك طريقة، اتصرّف
+ولمن تعرِفا اتذكّر تقول "نتشرّف"
+اسمع كلمتي، وما تقول دا عمّك خرّف
+
++++
+!ويمكن إدراج الوصلات في نص الأبيات نفسه، مثلا:
+عملت <a href="https://www.facebook.com/abdalla.gafar.3/posts/10160981200605707">طلب صداقة</a> زمان  وراجيك تعمل acceptance
+مسحتو وعِدتو كم مرّة  بكل إصرار و insistance
+
++++
+
+غاية في الأدب  تحفة من ذهب
+لم أجد مثلها  في مهاة العرب
+لم أجد خُلقها  في كرام النسب
+إن أُرد وصفها  إنّ ظنيّ كذب
+أيّ بنت أرى  من ذوات الحسب
+أيّ بدر بدا  برهة و احتجب
+باعثاً حوله  هالة من لهب
+موقداً ناره  في قصيف القصب
+ماله في الهوى  و الجوى و النصب
+إن قلبي هوى  إنّه قد أحب
+أرسلت سهمها  نحوه كالشهب
+و ابتلت بالهوى  و الفؤاد انجذب
+نالني سهمها  ليته لم يُصِب
+ثمّ بانت فما  دونها من سبب
+كم أرى بعدها  كلّ شيء ذهب
+إنّ حُبيّ لها  لا يضاهيه حب
+من لقلبي الذي  بالدماء اختضب
+بتّ أبكي و قد  عزّ دوني الطلب
+في طريقي لها  كم لقيت الكرب
+في غرامي بها  قد رأيت العجب
+باهتمامي بها  كم نسيت الكتب
+في هيامي بها  قد فقدت اللقب
+حالة مُرّة  ما لها من سبب
+إن درب الهوى  يا صديقي صعب
+من قيود الهوى  هل لنا من هرب
+</textarea>
+</div>
+<script>handleTextEntryChange()</script>
+</body>
+</html>
