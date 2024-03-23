@@ -3,6 +3,8 @@
 // 2024-02-26: First created by Abdalla G. M. Ahmed
 // =============================================================================
 
+console.log("Entering poemFormat.js");
+
 function poemFormat(poem) {
     // -------------------------------------------------------------------------
     // Auxiliary functions
