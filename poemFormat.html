@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Interactive Poem Formatter</title>
-<!-- Include CSS file -->
 <link rel="stylesheet" href="poemFormat.css">
-<!-- Include JavaScript file -->
 <script src="poemFormat.js" defer></script>
 <style>
 html {
@@ -81,6 +79,10 @@ document.addEventListener('DOMContentLoaded', function() {
         'input', handleTextEntryChange
     );
 });
+
+window.addEventListener('load', function() {
+    handleTextEntryChange();
+});
 </script>
 
 </head>
@@ -91,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <li>أدخل مسافتين أو أكثر بين أجزاء البيت (من واحد إلى أربعة أجزاء)</li>
         <li>ضع نقطة واحدة على كلّ جانب للبيت لوضعه في الوسط، ونقطتين على كلّ جانب لمساواة عرضه بأنصاف الأبيات</li>
         <li>ضع علامة تعجّب "!" في بداية السطر لإدراج تعليق بين الأبيات</li>
-        <li>استخدم فاصل "+++"، ثلاثة أو أكثر، لبدء قصيدة جديدة</li>
+        <li>استخدم فاصل "==="، ثلاثة أو أكثر، لبدء قصيدة جديدة</li>
         <li>الأبيات الطويلة يمكن قسمتها على سطرين، ووضع مسافتين "  " أو أكثر قبل عجز الأبيات</li>
         <li>استتخدم أربعة فواصل "----" لإدراج خط فاصل بعرض الأبيات </li>
     </ul>
@@ -104,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
 بي قفاهن تور قرنو ماكن  لا غشن لا شافن مساكن
 .. في الخزام والشيح والبراح ..
 
-+++
+===
 
 ! مثال للأبيات الطويلة
 إحساسي بيك مااظن في حاجة بتوصفه
@@ -112,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
 إنسان فريد لاح من بعيد زي أحلى عيد
               زار عالمي وقال ليّ داير استكشفه
 
-+++
+===
 
 ! يمكن دمج أجزاء البيت، مثلا
 لقيت اليوم من أهوى   وقلبي سائرٌ وِفقه
@@ -121,7 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
 لقيت اليوم من أهوى   وقلبي سائرٌ وِفقه
 رفيقٌ غايةٌ في الحسـ  ـن حقّا نعمة الرفقة
 
-+++
+===
 
 !يمكن استخدام بعض تاقات التنسيق، <a href="https://sudan.abdallagafar.com/index.php/مستخدم:عبد_الله_جعفر/مسدار_الحنك">مثلا</a>:
 <b>أوعك</b> تمشي لي واحدة وتقول "نتعرّف"
@@ -129,12 +131,12 @@ document.addEventListener('DOMContentLoaded', function() {
 ولمن تعرِفا اتذكّر تقول "نتشرّف"
 اسمع كلمتي، وما تقول دا عمّك خرّف
 
-+++
+===
 !ويمكن إدراج الوصلات في نص الأبيات نفسه، مثلا:
 عملت <a href="https://www.facebook.com/abdalla.gafar.3/posts/10160981200605707">طلب صداقة</a> زمان  وراجيك تعمل acceptance
 مسحتو وعِدتو كم مرّة  بكل إصرار و insistance
 
-+++
+===
 
 غاية في الأدب  تحفة من ذهب
 لم أجد مثلها  في مهاة العرب
@@ -163,6 +165,5 @@ document.addEventListener('DOMContentLoaded', function() {
 من قيود الهوى  هل لنا من هرب
 </textarea>
 </div>
-<script>handleTextEntryChange()</script>
 </body>
 </html>

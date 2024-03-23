@@ -66,7 +66,6 @@ function poemFormat(poem) {
     var emphasizeAll = parseInt(poem.getAttribute('data-emph') || 0);
     var options = parseInt(poem.getAttribute('data-options') || 0);             // Justify, split parts, use Smart quotes
     options ^= DEFAULT_OPTIONS;                                             // User options are merged with defaults rather than replace them
-    console.log(DEFAULT_OPTIONS);
     var attribs = poem.getAttribute('data-attribs') || '';                      // Attributes passed to the div.
     if (options & LTR) attribs += ' dir="LTR"';
     var classList = poem.getAttribute('data-classList') || '';
