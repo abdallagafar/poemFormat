@@ -66,7 +66,7 @@ function handleTextEntryChange() {
     $('displayPane').innerHTML = (
         $('textEntry').value
         .split(/\n={3,}\n/)
-        .map(function(txt) { return '<div class="abyat" data-flags="إجمالي، ترقيم">'+txt+'</div>'; })      // data-attribs="dir=&#34;ltr&#34;"
+        .map(function(txt) { return '<div class="abyat">'+txt+'</div>'; })      // data-attribs="dir=&#34;ltr&#34;"
         .join('\n<hr>\n')
     );
     document.querySelectorAll('.abyat').forEach(function(poem) {
