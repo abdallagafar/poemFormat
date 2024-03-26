@@ -5,6 +5,8 @@
 
 console.log("Entering poemFormat.js");
 
+var poemFormatGrossCounter = 0;                                                  // Count all parsed beits
+
 function poemFormat(poem) {
     // -------------------------------------------------------------------------
     // Auxiliary functions
@@ -31,16 +33,20 @@ function poemFormat(poem) {
         });
     }
     // -------------------------------------------------------------------------
-    // Retrieve font specs
+    // Extract flags from a comma-separated list
     // -------------------------------------------------------------------------
-    var computedStyle = window.getComputedStyle(poem);
-    var fontStyle = [
-    computedStyle.fontStyle,
-    computedStyle.fontVariant,
-    computedStyle.fontWeight,
-    computedStyle.fontSize,
-    computedStyle.fontFamily
-    ].join(' ');
+    function getFlags(list, flagValues) {
+        var flags = 0;
+        list
+        .split(/[,،]/)                                                          // Split into array of entries
+        .forEach(function(entry) {                                              // Process each entry
+            entry = entry.trim();
+            if (flagValues.hasOwnProperty(entry)) {                             // If a valid flag key
+                flags ^= flagValues[entry];                                     // Set the flag bit
+            }
+        });
+        return flags;
+    }
     // -------------------------------------------------------------------------
     // Measure displayed width of an HTML text
     // -------------------------------------------------------------------------
@@ -134,17 +140,19 @@ function poemFormat(poem) {
     const WRAP = 16;                                                            // Wrap wide verses between lines
     const HYPHENS2DASH = 32;                                                    // Replace --- by mdash — and -- by ndash –
     const WIDTH_LOCAL = 64;                                                     // Compute verse width locally for a block
-    const NUMBER = 128;                                                         // Number the beit lines
+    const NUMBER = 128;                                                         // Number the beits lines
+    const GROSS = 256;                                                          // Number the beits in the whole page
     const OPTIONS_DEFAULT = SMART_QUOTES + WRAP + HYPHENS2DASH;
     const FLAGS = {                                                             // Arabic keys for toggling the flags
-        /* ABC */ 'حر'    : FREE,                                               // The dummy comments are to make the Arabic text align left.
-        /* ABC */ 'عمود'  : SINGLE_COLUMN,
-        /* ABC */ 'تنصيص' : SMART_QUOTES,
-        /* ABC */ 'EN'    : LTR,
-        /* ABC */ 'طي'    : WRAP,
-        /* ABC */ 'داش'   : HYPHENS2DASH,
-        /* ABC */ 'عرض'   : WIDTH_LOCAL,
-        /* ABC */ 'ترقيم'   : NUMBER
+        /* ABC */ 'حر'      : FREE,                                             // The dummy comments are to make the Arabic text align left.
+        /* ABC */ 'عمود'    : SINGLE_COLUMN,
+        /* ABC */ 'تنصيص'   : SMART_QUOTES,
+        /* ABC */ 'EN'      : LTR,
+        /* ABC */ 'طي'      : WRAP,
+        /* ABC */ 'داش'     : HYPHENS2DASH,
+        /* ABC */ 'عرض'     : WIDTH_LOCAL,
+        /* ABC */ 'ترقيم'   : NUMBER,
+        /* ABC */ 'إجمالي'  : GROSS
     };
     const nGaps  = [2, 0, 1, 2, 3, 4];                                          // Number of gaps for different number of parts
     const bGap = 50;                                                            // This is twice the sum of widths of bPrefix and bSuffix in CSS
@@ -159,9 +167,8 @@ function poemFormat(poem) {
     // -------------------------------------------------------------------------
     var bWidthGlobal = parseFloat(poem.getAttribute('data-width') || 0);        // Common overall width of beit
     var bWidthMin = 0;                                                          // Minimum width
-    var counter = 0;                                                            // Count the number of beits
     var emphasizeAll = parseInt(poem.getAttribute('data-emph') || 0);
-    var flagsGlobal = parseInt(poem.getAttribute('data-flags') || 0);           // Justify, split parts, use Smart quotes
+    var flagsGlobal = getFlags(poem.getAttribute('data-flags') || '', FLAGS);
     var flags = flagsGlobal ^ OPTIONS_DEFAULT;                                  // User flags are merged with defaults rather than replace them
     var attribs = poem.getAttribute('data-attribs') || '';                      // Attributes passed to the div.
         if (attribs) attribs = ' ' + attribs;
@@ -169,6 +176,15 @@ function poemFormat(poem) {
         if (classList) classList = 'poemBody ' + classList;
         else classList = 'poemBody';
     var staggeredGlobal = false;
+    var computedStyle = window.getComputedStyle(poem);
+    var fontStyle = [
+        computedStyle.fontStyle,
+        computedStyle.fontVariant,
+        computedStyle.fontWeight,
+        computedStyle.fontSize,
+        computedStyle.fontFamily
+    ].join(' ');
+    var counter = (flagsGlobal & GROSS) ? poemFormatGrossCounter : 0;           // Count the number of beits
     var lines = (
         poem
         .innerHTML                                                              // We get the HTML to retain inline tags <a,i,b,s,u>
@@ -264,8 +280,9 @@ function poemFormat(poem) {
                     }
                     else if (keyVal[1] === 'ترقيم') {
                         flags |= FLAGS['ترقيم'];
-                        counter = parseInt(east2westArabic(keyVal[2])) || 1;
-                        counter--;
+                        counter = (
+                            (parseInt(east2westArabic(keyVal[2])) || 1) - 1
+                        );
                     }
                 }
             });
@@ -530,11 +547,11 @@ function poemFormat(poem) {
         }
         formattedLines = (
             formattedLines
-                .join('')                                                           // Concatenate
-                .replace(/\s*<sup>/g, '<sup>')                                      // Stick notes labels to preceding text
-                .replace(/\s*<sup>\+<\/sup>/g, function() {                         // Restore saved titles
-                    return '<sup title="' + ftntTitles.shift() + '">+</sup>';
-                })
+            .join('')                                                           // Concatenate
+            .replace(/\s*<sup>/g, '<sup>')                                      // Stick notes labels to preceding text
+            .replace(/\s*<sup>\+<\/sup>/g, function() {                         // Restore saved titles
+                return '<sup title="' + ftntTitles.shift() + '">+</sup>';
+            })
         );
         if (flags & WIDTH_LOCAL) {
             return dimPlcHldrRstr(formattedLines, bWidth, staggered);
@@ -565,5 +582,6 @@ function poemFormat(poem) {
     if (footnotes) {
         formattedPoem += '<div class="poemGutter">' + footnotes + '</div>'
     }
+    poemFormatGrossCounter += counter;
     return formattedPoem;
 }
