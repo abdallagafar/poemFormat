@@ -341,7 +341,6 @@ function poemFormat(poem) {
                         elements = ['', part, '', ''];                          // Put all contents in prefix
                     }
                     elements.shift();                                           // Pop the first entry, which matches the whole regex
-                    console.log(elements);
                     // ---------------------------------------------------------
                     // Enclose words in spans to enable justification
                     // ---------------------------------------------------------
@@ -362,7 +361,6 @@ function poemFormat(poem) {
                 })
                 .join(' <=> ')                                                  // A separator mark between parts
             );
-            console.log(`line =${line}`);
             // -----------------------------------------------------------------
             // Distribute tags over words so that they can be split properly
             // between parts/elements
@@ -387,7 +385,6 @@ function poemFormat(poem) {
                     }
                 );
             });
-            console.log(`line =${line}`);
             // -----------------------------------------------------------------
             // Restore tags
             // -----------------------------------------------------------------
@@ -407,9 +404,7 @@ function poemFormat(poem) {
                 .split(' <=> ')
                 .map(function(part) {
                     part = ftntLblsRstr(part);
-                    console.log(part);
                     var elements = part.split(' <-> ');
-                    console.log(elements);
                     // ---------------------------------------------------------
                     partWidth = Math.max(
                         partWidth, measureTextWidth(elements[1], fontStyle)     // Update longest part length
