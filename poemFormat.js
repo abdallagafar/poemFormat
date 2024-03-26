@@ -138,6 +138,7 @@ function poemFormat(poem) {
         // ---------------------------------------------------------------------
         // Splitting lines
         // ---------------------------------------------------------------------
+        if (!lines) { return ''; }                                              // Happens when starting with a separator line, e.g., for formatting.
         if (lines.match(/(?:^|\n) *\+{3,}.*?\n/)) {                             // Block separator, try to extract parameters, if any
             flags = flagsGlobal ^ OPTIONS_DEFAULT;                              // Reset flags
             bWidthMin = 0;                                                      // Reset minimum width, unless set explicitly in passed parameters
