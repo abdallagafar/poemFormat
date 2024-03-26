@@ -383,7 +383,8 @@ function poemFormat(poem) {
             // -----------------------------------------------------------------
             // Now we are left with actual lines of the poem
             // -----------------------------------------------------------------
-            counter++;
+            counter++;                                                          // Count new beit
+            poemFormatGrossCounter++;                                           // also update global count
             bAttribs += (
                 ' data-number="' + west2eastArabic(counter.toString()) + '"'
             );
@@ -582,6 +583,5 @@ function poemFormat(poem) {
     if (footnotes) {
         formattedPoem += '<div class="poemGutter">' + footnotes + '</div>'
     }
-    poemFormatGrossCounter += counter;
     return formattedPoem;
 }
