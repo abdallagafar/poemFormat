@@ -7,10 +7,18 @@
 p.beit {
     text-align: center;
     white-space: pre;
+    position: relative;                                                         /* required for numbering */
+}
+.bNumbered::after {
+    content: attr(data-number);                                                 /* Use the data-number attribute for content */
+    position: absolute;                                                         /* Position the number outside the paragraph */
+    right: 500px;                                                               /* Aligned at edge of div, in the left padding */
+    opacity: 0.25;
 }
 .bFree {
     text-align: right;
     padding-right: 50px;
+    white-space: pre-wrap;
 }
 .bComment {                                                                     /* Primarily for embedded notes */
     text-align: justify;
@@ -59,7 +67,7 @@ span.bJustified {
     display: table-cell;
     width: 500px;
     vertical-align: middle;
-    padding-left: 20px;
+    padding-left: 30px;
 }
 .poemGutter {
     display: table-cell;
