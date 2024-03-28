@@ -9,127 +9,98 @@ var poemFormatGrossCounter = 0;                                                 
 
 function poemFormat(poem) {
     // =========================================================================
-    // Auxiliary functions
+    // Constants
     // =========================================================================
-    // -------------------------------------------------------------------------
-    // Escape special characters in strings used to build RegExp
-    // -------------------------------------------------------------------------
-    function escRegExp(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');                   // $& means the whole matched string
-    }
-    // -------------------------------------------------------------------------
-    // Replace Western Arabic digits by Eastern Arabic (٠١٢٣٤٥٦٧٨٩)
-    // -------------------------------------------------------------------------
-    function west2eastDigits(input) {
-        return input.replace(/\d/g, function(match) {
-            return String.fromCharCode(parseInt(match, 10) + 0x0660);
-        });
-    }
-    // -------------------------------------------------------------------------
-    // Function to replace digits to use Hindi Arabic (٠١٢٣٤٥٦٧٨٩)
-    // -------------------------------------------------------------------------
-    function east2westDigits(input) {
-        return input.replace(/[٠١٢٣٤٥٦٧٨٩]/g, function(match) {
-            return String.fromCharCode(match.charCodeAt(0) - 0x0660 + 48);
-        });
-    }
-    // -------------------------------------------------------------------------
-    // Extract flags from a comma-separated list
-    // -------------------------------------------------------------------------
-    function getFlags(list, flagValues) {
-        var flags = 0;
-        list
-        .split(/[,،]/)                                                          // Split into array of entries
-        .forEach(function(entry) {                                              // Process each entry
-            entry = entry.trim();
-            if (flagValues.hasOwnProperty(entry)) {                             // If a valid flag key
-                flags ^= flagValues[entry];                                     // Set the flag bit
-            }
-        });
-        return flags;
-    }
-    // -------------------------------------------------------------------------
-    // Measure displayed width of an HTML text
-    // -------------------------------------------------------------------------
-    function measureTextWidth(text) {
-        var tmpSpan = document.createElement("span");
-        tmpSpan.style.font = fontStyle;                                         // Apply the font style
-        tmpSpan.style.position = "absolute";
-        tmpSpan.style.visibility = "hidden";
-        tmpSpan.style.whiteSpace = "nowrap";
-        tmpSpan.innerHTML = text;
-
-        document.body.appendChild(tmpSpan);
-        var textWidth = tmpSpan.offsetWidth;
-        document.body.removeChild(tmpSpan);
-
-        return textWidth;
-    }
-    // -------------------------------------------------------------------------
-    // Apply flags, which is called separately for blocks and footnotes
-    // -------------------------------------------------------------------------
-    function flagsApply(text) {
-        if (flags & SMART_QUOTES) {
-            text = (
-                text
-                .replace(/"(.*?)"/g, '”$1“')                                    // Replace straight codes by smart quotes if instructed
-                .replace(
-                    /<.*?>/g,                                                   // Locate tags
-                    function(match) { return match.replace(/[”“]/g, '"'); }     // Restore straight quotes
-                )
-            );
-        }
-        if (flags & HYPHENS2DASH) {                                             // Replace -- and --- by em and en dashes
-            text = (
-                text
-                .replace(/-{4,}/g, function(s) {return s.replace(/-/g, 'ة');})  // Temporarily replace sequences of 4+ hyphens
-                .replace(/---/g, '—')                                           // Replace triple hyphens with an em dash
-                .replace(/--/g, '–')                                            // Replace double hyphens with an en dash
-                .replace(/ة{4,}/g, function(s) {return s.replace(/ة/g, '-');})  // Restore 4+ hyphens
-            );
-        }
-        return text;
-    }
-    // -------------------------------------------------------------------------
-    // Restore footnotes at placeholders
-    // -------------------------------------------------------------------------
-    function ftntLblsRstr(str) {
-        return (
-            str
-            .replace(/<\+>/g, '<sup>+</sup>')
-            .replace(
-                /<\*>/g,
-                function(match) {
-                    return '<sup>' + ftntLabels.shift() + '</sup>';
-                }
-            )
-        );
+    const FREE = 1;                                                             // Free (non-column) style
+    const SINGLE_COLUMN = 2;                                                    // Enforce a single column, for musdar, e.g.
+    const SMART_QUOTES = 4;                                                     // Replace straight quotes by smart quotes
+    const LTR = 8;                                                              // Set text direction to left-to-right
+    const WRAP = 16;                                                            // Wrap wide verses between lines
+    const HYPHENS2DASH = 32;                                                    // Replace --- by mdash — and -- by ndash –
+    const WIDTH_LOCAL = 64;                                                     // Compute verse width locally for a block
+    const NUMBER = 128;                                                         // Number the beits lines
+    const GROSS = 256;                                                          // Number the beits in the whole page
+    const RESET_COUNTER = 512;                                                  // Reset Counter to zero with each block
+    const STAGGERED = 1024;                                                     // Split halves between lines and indent second half
+    const EMPH = 2048;                                                          // Emphasize beits in accordance with chosen stylization, typically a different color
+    const OPTIONS_DEFAULT = SMART_QUOTES + WRAP + HYPHENS2DASH;
+    const FLAGS = {                                                             // Arabic keys for toggling the flags
+        /* ABC */ 'حر'      : FREE,                                             // The dummy comments are to make the Arabic text align left.
+        /* ABC */ 'عمود'    : SINGLE_COLUMN,
+        /* ABC */ 'تنصيص'   : SMART_QUOTES,
+        /* ABC */ 'EN'      : LTR,
+        /* ABC */ 'طي'      : WRAP,
+        /* ABC */ 'داش'     : HYPHENS2DASH,
+        /* ABC */ 'عرض'     : WIDTH_LOCAL,
+        /* ABC */ 'ترقيم'   : NUMBER,
+        /* ABC */ 'إجمالي'  : GROSS,
+        /* ABC */ 'تظهير'   : EMPH,
+        /* ABC */ 'تداخل'   : STAGGERED,
+        /* ABC */ 'تصفير'   : RESET_COUNTER
     };
-    // -------------------------------------------------------------------------
-    // Restore dimensions at placeholders
-    // -------------------------------------------------------------------------
-    function dimPlcHldrRstr(txt, bWidth, staggered) {
-        var pWidth = [1, 1, 2, 3, 4, 5].map(function(entry, index) {            // Compute part widths based on whole width
-            return (bWidth - nGaps[index] * bGap) / entry;
-        });
-        if ((flags & WRAP) && (bWidth > bWidthMax)) { staggered = true; }       // Split too long parts over rows
-        var actualPartSeparator = (
-            staggered ?
-            '<span class="bStaggerOffset"></span><br>' +                        // Add an offsetting space after first half
-            '<span class="bStaggerOffset">    </span>'                          // and before second half, and include staggering spaces
-            : '<span class="bGap">    <\/span>'                                 // Otherwise, make a fixed-width gap with white spaces
-        );
-        var hWidth = staggered ? pWidth[2] : bWidth;           // Horizontal line width, default beit width, but only single part width when staggered
-        return (
-            txt
-            .replace(/ <=> /g, actualPartSeparator)
-            .replace(/%pWidth(\d+)%/g, function(match, i) {                     // Replace computed part widths
-                return pWidth[i].toFixed(1);
-            })
-            .replace(/%bWidth%/g, bWidth)                                       // Replace computed overall beit width
-            .replace(/%hWidth%/g, hWidth)                                       // Replace computed overall beit width
-        );
+    const DATA_LABELS = {
+        /* ABC */ 'عرض'     : 'bWidthMin',
+        /* ABC */ 'ترقيم'   : 'beitNo',
+        /* ABC */ 'كلاس'     : 'classList'
     };
+    const nGaps  = [2, 0, 1, 2, 3, 4];                                          // Number of gaps for different number of parts
+    const bGap = 50;                                                            // This is twice the sum of widths of bPrefix and bSuffix in CSS
+    const bStaggerOffset = 75;                                                  // Should match CSS
+    const bWidthMax = 450;                                                      // This should match the CSS declaration of the width of poemBody div less padding and bPrefix/bSuffix width
+    const elementSeparator = ' <-> ';                                           // A placeholder for separating identified parts during processing
+    const partSeparator = ' <=> ';                                              // A placeholder for separating prefix/body/suffix of a part
+    const titlePlcHldr = '<+>';                                                 // A placeholder for in-place footnotes, distinct from '+' characters that may exist in the text
+    const ftntPlcHldr = '<*>';                                                  // A placeholder for gutter footnotes
+    // =========================================================================
+    // Global Variables
+    // =========================================================================
+    var paramsGlobal = {bWidthMin: 0, beitNo: 0, classList: ''};                // Global options defaults
+    var paramsLocal  = {bWidthMin: 0, beitNo: 0, classList: ''};                // Options for blocks
+    var flagsGlobal = (                                                         // Global flags (on/off switches)
+        getData(
+            (poem.getAttribute('data-params') || ''),                           // List of passed parameters, if any
+            paramsGlobal,                                                       // Adjust global parameters from the list
+            FLAGS,                                                              // List of Arabic flag names and their bit values
+            DATA_LABELS                                                         // List of Arabic parameters names and their entry names in the passed parameters object
+        ) ^ OPTIONS_DEFAULT                                                     // User flags are merged with defaults rather than replace them
+    );
+        if (paramsGlobal.beitNo) flagsGlobal |= NUMBER;                         // Setting a beit number implies numbering
+        else paramsGlobal.beitNo = 1;                                           // Otherwise, initialize it
+    var flags = flagsGlobal;                                                    // Use global unless changed by inline parameters
+    var bWidthGlobal = paramsGlobal.bWidthMin;                                  // Common overall width of beit
+    var attribs = poem.getAttribute('data-attribs') || '';                      // Attributes passed to the div.
+        if (attribs) attribs = ' ' + attribs;
+    var classList = poem.getAttribute('data-classList') || '';
+        if (classList) classList = 'poemBody ' + classList;
+        else classList = 'poemBody';
+    var staggeredGlobal = (flagsGlobal & STAGGERED) !== 0;
+    var computedStyle = window.getComputedStyle(poem);
+    var fontStyle = [
+        computedStyle.fontStyle,
+        computedStyle.fontVariant,
+        computedStyle.fontWeight,
+        computedStyle.fontSize,
+        computedStyle.fontFamily
+    ].join(' ');
+    var beitNo = (
+        (flagsGlobal & GROSS) ?
+        poemFormatGrossCounter + 1 :
+        paramsGlobal.beitNo
+    );
+    var lines = (
+        poem
+        .innerHTML                                                              // We get the HTML to retain inline tags <a,i,b,s,u>
+        .replace(/<\/p><p>/gi, '<br>\n')                                        // Undo wiki removal of single empty lines
+        .replace(/\s*<(p|div|pre)[^>]*>/gi, '')                                 // Remove opening container tags and preceding whitespace
+        .replace(/<\/(p|div|pre)>/gi, '')                                       // Remove closing tags
+        .replace(/\s*<hr[^>]*>\s*/gi, '\n----\n')                               // Replace <hr> in wiki with our symbol for an <hr>
+        .replace(/<br>/gi, '\n')                                                // Replace line break tags with line-break characters
+        .trim()                                                                 // Remove leading and trailing empty lines so that the enclosing <div> tag may be placed in separate lines
+    );
+    var ftntTitles = [];                                                        // Array to hold the contents of in-place notes.
+    var ftntReferenced = [];                                                    // Referenced footnotes
+    var ftntStandalone = [];                                                    // Standalone footnotes
+    var ftntLabels = [];                                                        // Array to save footnote labels during processing
 
     // =========================================================================
     // Core function: format a block of filtered poem lines
@@ -140,31 +111,19 @@ function poemFormat(poem) {
         // ---------------------------------------------------------------------
         if (!lines) { return ''; }                                              // Happens when starting with a separator line, e.g., for formatting.
         if (lines.match(/(?:^|\n) *\+{3,}.*?\n/)) {                             // Block separator, try to extract parameters, if any
-            flags = flagsGlobal ^ OPTIONS_DEFAULT;                              // Reset flags
-            bWidthMin = 0;                                                      // Reset minimum width, unless set explicitly in passed parameters
-            lines
-            .replace(/^\s*\+*/, '')                                             // Remove the plus separators
-            .split(/[,،]/)                                                      // Split into array of keys
-            .forEach(function(entry) {                                          // Process each key
-                entry = entry.trim();
-                var keyVal;
-                if (!entry) return;                                             // No parameters
-                if (FLAGS.hasOwnProperty(entry)) {                              // If a flag key
-                    flags ^= FLAGS[entry];                                      // Toggle the flag
-                }
-                else if (keyVal = entry.match(/(.*?)\s*=\s*(.*)/)) {            // Extract key-value pairs
-                    if (keyVal[1] === 'عرض') {
-                        flags |= FLAGS['عرض'];
-                        bWidthMin = parseInt(east2westDigits(keyVal[2])) || 0;
-                    }
-                    else if (keyVal[1] === 'ترقيم') {
-                        flags |= FLAGS['ترقيم'];
-                        counter = (
-                            (parseInt(east2westDigits(keyVal[2])) || 1) - 1
-                        );
-                    }
-                }
-            });
+            flags = flagsGlobal;                                                // Reset flags
+            if (flags & RESET_COUNTER) beitNo = 1;
+            paramsLocal = {bWidthMin: 0, beitNo: 0, classList: ''};             // Reset local parameters
+            flags ^= getData(
+                lines.replace(/^\s*\+*/, ''),                                   // Trim the "+" signs
+                paramsLocal,                                                    // Sent to retrieve local parameters, if any
+                FLAGS,                                                          // List of Arabic flag names and their bit values
+                DATA_LABELS                                                     // List of Arabic parameters names and their entry names in the passed parameters object
+            );
+            if (paramsLocal.beitNo) {                                           // If a beit number is specified
+                beitNo = paramsLocal.beitNo;                                    // Adjust beitNo
+                flags |= NUMBER;                                                // And turn on numbering
+            }
             return '';                                                          // Done with separator, return for next block
         }
         // ---------------------------------------------------------------------
@@ -180,9 +139,9 @@ function poemFormat(poem) {
         // ---------------------------------------------------------------------
         // Normal
         // ---------------------------------------------------------------------
-        var bWidth = bWidthMin;                                                 // Initial bWidth
+        var bWidth = paramsLocal.bWidthMin;                                     // Initial bWidth
         var pWidth = [0, 0, 0, 0, 0, 0];                                        // Widths of part for different number of parts, index 0 is used for centered verses
-        var staggered = false;                                                  // Whether the poem is fed as one half per line, indenting second halves
+        var staggered = (flags & STAGGERED) !== 0;                              // Whether the poem is fed as one half per line, indenting second halves
         lines = flagsApply(lines);                                              // Apply option flags
         lines = (
             lines
@@ -199,9 +158,9 @@ function poemFormat(poem) {
             var line = lines[i];
             var bClass = 'beit';                                                // Default class
             var bAttribs = ((flags & LTR) ? ' dir="LTR"' : '');                 // Attributes of paragraph
-            if (emphasizeAll) bClass += ' bEmph';
-            if (line.match(/\+\+$/)) {                                          // A line ending with "++" is emphasized
-                if (!emphasizeAll) { bClass += ' bEmph' };
+            if (flags & EMPH) bClass += ' bEmph';
+            if (line.match(/[^+]\+\+$/)) {                                      // A line ending with "++" is emphasized
+                if (!(flags & EMPH)) { bClass += ' bEmph' };
                 line = line.slice(0, -2).trim();                                // Remove the symbols and preceding spaces
             }
             line = line.trim();                                                 // Remove white space around
@@ -273,12 +232,10 @@ function poemFormat(poem) {
             // 8. Split again at marks inserted in 5
             // 9. Measure widths of cores of parts, now in final formatting
             // -----------------------------------------------------------------
-            counter++;                                                          // Count new beit
-            poemFormatGrossCounter++;                                           // also update global count
             bAttribs += (
-                ' data-number="' + west2eastDigits(counter.toString()) + '"'
+                ' data-number="' + west2eastDigits(beitNo.toString()) + '"'
             );
-            if (flags & NUMBER) {
+            if ((flags & NUMBER) || (paramsLocal.beitNo)) {
                 bClass += " bNumbered";
             }
             // -----------------------------------------------------------------
@@ -425,6 +382,8 @@ function poemFormat(poem) {
             formattedLines.push(
                 '<p class="' + bClass + '"' + bAttribs + '>' + line + '</p>'
             );
+            beitNo++;                                                           // Count new beit
+            poemFormatGrossCounter++;                                           // also update global count
         }
         for (var i = 0; i < pWidth.length; i++) {
             var bWidth_i = pWidth[i] ? pWidth[i] * i + nGaps[i] * bGap : 0;     // Width to accommodate this number/width of parts
@@ -437,7 +396,7 @@ function poemFormat(poem) {
                 return '<sup title="' + ftntTitles.shift() + '">+</sup>';
             })
         );
-        if (flags & WIDTH_LOCAL) {
+        if ((flags & WIDTH_LOCAL) || (paramsLocal.bWidthMin)) {
             return dimPlcHldrRstr(formattedLines, bWidth, staggered);           // Immediately restore dimension placeholders computed for this block
         }
         else {
@@ -446,82 +405,146 @@ function poemFormat(poem) {
             return formattedLines;                                              // Defer dimension placeholder replacement to the end
         }
     }
+    // =========================================================================
+    // Auxiliary functions
+    // =========================================================================
+    // -------------------------------------------------------------------------
+    // Escape special characters in strings used to build RegExp
+    // -------------------------------------------------------------------------
+    function escRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');                   // $& means the whole matched string
+    }
+    // -------------------------------------------------------------------------
+    // Replace Western Arabic digits by Eastern Arabic (٠١٢٣٤٥٦٧٨٩)
+    // -------------------------------------------------------------------------
+    function west2eastDigits(input) {
+        return input.replace(/\d/g, function(match) {
+            return String.fromCharCode(parseInt(match, 10) + 0x0660);
+        });
+    }
+    // -------------------------------------------------------------------------
+    // Function to replace digits to use Hindi Arabic (٠١٢٣٤٥٦٧٨٩)
+    // -------------------------------------------------------------------------
+    function east2westDigits(input) {
+        return input.replace(/[٠١٢٣٤٥٦٧٨٩]/g, function(match) {
+            return String.fromCharCode(match.charCodeAt(0) - 0x0660 + 48);
+        });
+    }
+    // -------------------------------------------------------------------------
+    // Extract parameters and return flags from a comma-separated list
+    // -------------------------------------------------------------------------
+    function getData(list, params, flagValues, dataLabels) {
+        var flags = 0;
+        list
+        .split(/[,،]/)                                                          // Split into array of entries
+        .forEach(function(entry) {                                              // Process each entry
+            entry = entry.trim();
+            var keyVal;
+            if (flagValues.hasOwnProperty(entry)) {                             // If a valid flag key
+                flags ^= flagValues[entry];                                     // Set the flag bit
+            }
+            else if (keyVal = entry.match(/(.*?)\s*=\s*(.*)/)) {                // Extract key-value pairs
+                if (dataLabels.hasOwnProperty(keyVal[1])) {
+                    var key = dataLabels[ keyVal[1] ];                          // Translate to english name for easier code writing
+                    var value = keyVal[2];
+                    if (typeof params[key] === "number") {
+                        value = parseInt(east2westDigits(keyVal[2])) || 0;
+                    }
+                    params[key] = value;
+                }
+            }
+        });
+        return flags;
+    }
+    // -------------------------------------------------------------------------
+    // Measure displayed width of an HTML text
+    // -------------------------------------------------------------------------
+    function measureTextWidth(text) {
+        var tmpSpan = document.createElement("span");
+        tmpSpan.style.font = fontStyle;                                         // Apply the font style
+        tmpSpan.style.position = "absolute";
+        tmpSpan.style.visibility = "hidden";
+        tmpSpan.style.whiteSpace = "nowrap";
+        tmpSpan.innerHTML = text;
+
+        document.body.appendChild(tmpSpan);
+        var textWidth = tmpSpan.offsetWidth;
+        document.body.removeChild(tmpSpan);
+
+        return textWidth;
+    }
+    // -------------------------------------------------------------------------
+    // Apply flags, which is called separately for blocks and footnotes
+    // -------------------------------------------------------------------------
+    function flagsApply(text) {
+        if (flags & SMART_QUOTES) {
+            text = (
+                text
+                .replace(/"(.*?)"/g, '”$1“')                                    // Replace straight codes by smart quotes if instructed
+                .replace(
+                    /<.*?>/g,                                                   // Locate tags
+                    function(match) { return match.replace(/[”“]/g, '"'); }     // Restore straight quotes
+                )
+            );
+        }
+        if (flags & HYPHENS2DASH) {                                             // Replace -- and --- by em and en dashes
+            text = (
+                text
+                .replace(/-{4,}/g, function(s) {return s.replace(/-/g, 'ة');})  // Temporarily replace sequences of 4+ hyphens
+                .replace(/---/g, '—')                                           // Replace triple hyphens with an em dash
+                .replace(/--/g, '–')                                            // Replace double hyphens with an en dash
+                .replace(/ة{4,}/g, function(s) {return s.replace(/ة/g, '-');})  // Restore 4+ hyphens
+            );
+        }
+        return text;
+    }
+    // -------------------------------------------------------------------------
+    // Restore footnotes at placeholders
+    // -------------------------------------------------------------------------
+    function ftntLblsRstr(str) {
+        return (
+            str
+            .replace(/<\+>/g, '<sup>+</sup>')
+            .replace(
+                /<\*>/g,
+                function(match) {
+                    return '<sup>' + ftntLabels.shift() + '</sup>';
+                }
+            )
+        );
+    };
+    // -------------------------------------------------------------------------
+    // Restore dimensions at placeholders
+    // -------------------------------------------------------------------------
+    function dimPlcHldrRstr(txt, bWidth, staggered) {
+        var pWidth = [1, 1, 2, 3, 4, 5].map(function(entry, index) {            // Compute part widths based on whole width
+            return (bWidth - nGaps[index] * bGap) / entry;
+        });
+        if ((flags & WRAP) && (bWidth > bWidthMax)) { staggered = true; }       // Split too long parts over rows
+        var actualPartSeparator = (
+            staggered ?
+            '<span class="bStaggerOffset"></span><br>' +                        // Add an offsetting space after first half
+            '<span class="bStaggerOffset">    </span>'                          // and before second half, and include staggering spaces
+            : '<span class="bGap">    <\/span>'                                 // Otherwise, make a fixed-width gap with white spaces
+        );
+        var hWidth = staggered ? pWidth[2] : bWidth;                            // Horizontal line width = beit width, but only single part width when staggered
+        return (
+            txt
+            .replace(/ <=> /g, actualPartSeparator)
+            .replace(/%pWidth(\d+)%/g, function(match, i) {                     // Replace computed part widths
+                return pWidth[i].toFixed(1);
+            })
+            .replace(/%bWidth%/g, bWidth)                                       // Replace computed overall beit width
+            .replace(/%hWidth%/g, hWidth)                                       // Replace computed overall beit width
+        );
+    };
 
     // =========================================================================
     // Main
     // =========================================================================
     // -------------------------------------------------------------------------
-    // Constants
-    // -------------------------------------------------------------------------
-    const FREE = 1;                                                             // Free (non-column) style
-    const SINGLE_COLUMN = 2;                                                    // Enforce a single column, for musdar, e.g.
-    const SMART_QUOTES = 4;                                                     // Replace straight quotes by smart quotes
-    const LTR = 8;                                                              // Set text direction to left-to-right
-    const WRAP = 16;                                                            // Wrap wide verses between lines
-    const HYPHENS2DASH = 32;                                                    // Replace --- by mdash — and -- by ndash –
-    const WIDTH_LOCAL = 64;                                                     // Compute verse width locally for a block
-    const NUMBER = 128;                                                         // Number the beits lines
-    const GROSS = 256;                                                          // Number the beits in the whole page
-    const OPTIONS_DEFAULT = SMART_QUOTES + WRAP + HYPHENS2DASH;
-    const FLAGS = {                                                             // Arabic keys for toggling the flags
-        /* ABC */ 'حر'      : FREE,                                             // The dummy comments are to make the Arabic text align left.
-        /* ABC */ 'عمود'    : SINGLE_COLUMN,
-        /* ABC */ 'تنصيص'   : SMART_QUOTES,
-        /* ABC */ 'EN'      : LTR,
-        /* ABC */ 'طي'      : WRAP,
-        /* ABC */ 'داش'     : HYPHENS2DASH,
-        /* ABC */ 'عرض'     : WIDTH_LOCAL,
-        /* ABC */ 'ترقيم'   : NUMBER,
-        /* ABC */ 'إجمالي'  : GROSS
-    };
-    const nGaps  = [2, 0, 1, 2, 3, 4];                                          // Number of gaps for different number of parts
-    const bGap = 50;                                                            // This is twice the sum of widths of bPrefix and bSuffix in CSS
-    const bStaggerOffset = 75;                                                  // Should match CSS
-    const bWidthMax = 450;                                                      // This should match the CSS declaration of the width of poemBody div less padding and bPrefix/bSuffix width
-    const elementSeparator = ' <-> ';                                           // A placeholder for separating identified parts during processing
-    const partSeparator = ' <=> ';                                              // A placeholder for separating prefix/body/suffix of a part
-    const titlePlcHldr = '<+>';                                                 // A placeholder for in-place footnotes, distinct from '+' characters that may exist in the text
-    const ftntPlcHldr = '<*>';                                                  // A placeholder for gutter footnotes
-    // -------------------------------------------------------------------------
-    // Variables
-    // -------------------------------------------------------------------------
-    var bWidthGlobal = parseFloat(poem.getAttribute('data-width') || 0);        // Common overall width of beit
-    var bWidthMin = 0;                                                          // Minimum width
-    var emphasizeAll = parseInt(poem.getAttribute('data-emph') || 0);
-    var flagsGlobal = getFlags(poem.getAttribute('data-flags') || '', FLAGS);
-    var flags = flagsGlobal ^ OPTIONS_DEFAULT;                                  // User flags are merged with defaults rather than replace them
-    var attribs = poem.getAttribute('data-attribs') || '';                      // Attributes passed to the div.
-        if (attribs) attribs = ' ' + attribs;
-    var classList = poem.getAttribute('data-classList') || '';
-        if (classList) classList = 'poemBody ' + classList;
-        else classList = 'poemBody';
-    var staggeredGlobal = false;
-    var computedStyle = window.getComputedStyle(poem);
-    var fontStyle = [
-        computedStyle.fontStyle,
-        computedStyle.fontVariant,
-        computedStyle.fontWeight,
-        computedStyle.fontSize,
-        computedStyle.fontFamily
-    ].join(' ');
-    var counter = (flagsGlobal & GROSS) ? poemFormatGrossCounter : 0;           // Count the number of beits
-    var lines = (
-        poem
-        .innerHTML                                                              // We get the HTML to retain inline tags <a,i,b,s,u>
-        .replace(/<\/p><p>/gi, '<br>\n')                                        // Undo wiki removal of single empty lines
-        .replace(/\s*<(p|div|pre)[^>]*>/gi, '')                                 // Remove opening container tags and preceding whitespace
-        .replace(/<\/(p|div|pre)>/gi, '')                                       // Remove closing tags
-        .replace(/\s*<hr[^>]*>\s*/gi, '\n----\n')                               // Replace <hr> in wiki with our symbol for an <hr>
-        .replace(/<br>/gi, '\n')                                                // Replace line break tags with line-break characters
-        .trim()                                                                 // Remove leading and trailing empty lines so that the enclosing <div> tag may be placed in separate lines
-    );
-    // -------------------------------------------------------------------------
     // Extract referenced footnotes
     // -------------------------------------------------------------------------
-    var ftntTitles = [];                                                        // Array to hold the contents of in-place notes.
-    var ftntReferenced = [];                                                    // Referenced footnotes
-    var ftntStandalone = [];                                                    // Standalone footnotes
-    var ftntLabels = [];                                                        // Array to save footnote labels during processing
     for (var found = true; found; ) {
         found = false;
         lines = (
