@@ -90,6 +90,7 @@ function poemFormat(poem) {
     var lines = (
         poem
         .innerHTML                                                              // We get the HTML to retain inline tags <a,i,b,s,u>
+        .replace(/&nbsp;/g, ' ')                                                // Replace non-breaking spaces inserted by some web engines, e.g., Mediawiki
         .replace(/<\/p><p>/gi, '<br>\n')                                        // Undo wiki removal of single empty lines
         .replace(/\s*<(p|div|pre)[^>]*>/gi, '')                                 // Remove opening container tags and preceding whitespace
         .replace(/<\/(p|div|pre)>/gi, '')                                       // Remove closing tags
