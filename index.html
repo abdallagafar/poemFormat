@@ -13,31 +13,24 @@ html {
 
 html, body {
     height: 100%;
-    margin: 5px; /* Ensure there's no default margin */
+    margin: 5px;
     padding: 0;
-    box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: #f5f5f5;
 }
 
 #container {
     display: flex;
-    flex-direction: row-reverse;
+    white-space: nowrap;
+    overflow-x: auto;
     height: 100vh;
     padding: 0px;
 }
 
 #displayPane, #textEntry {
-    flex: 1;
-    margin: 0 5px;
+    display: inline-block;
     padding: 5px;
-    border-radius: 5px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    background: #fffcf3;
-    overflow: auto;
-    /* height: calc(100vh - 60px - 150px); /* Adjusted for padding and margin */
-    height: calc(100vh - 60px);
-    box-sizing: border-box; /* Include padding in the height calculation */
+    overflow-y: auto;
+    height: calc(100vh - 50px);
 }
 #textEntry {
     font-family: inherit;
@@ -45,14 +38,20 @@ html, body {
     font-weight: inherit;
     line-height: inherit;
     color: inherit;
-    resize: none; /* Disable resizing for the textarea */
-    flex: 0 0 45%; /* Adjusted width to 30% */
+    margin-left: 10px;
+    border: 0;
+    resize: none;                                                               /* Disable resizing for the textarea */
+    flex: 1 0 300px;                                                            /* Fixed 500px */
+}
+#displayPane {
+    flex: 2 0 500px;                                                            /* Grow, no shrink, base is 500px */
+    background: #fffcf3;
 }
 hr {
   border: 0;
   height: 2px;
-  background-color: #e0e0e0; /* or any color */
-  margin: 20px 0; /* adjust spacing around the hr */
+  background-color: #e0e0e0;
+  margin: 20px 0;
 }
 
 </style>
@@ -62,7 +61,6 @@ hr {
 function $(id) { return document.getElementById(id); }
 
 function handleTextEntryChange() {
-    poemFormatGrossCounter = 0;                                                 // Reset global counter
     $('displayPane').innerHTML = (
         $('textEntry').value
         .split(/\n={3,}\n/)
@@ -100,7 +98,6 @@ window.addEventListener('load', function() {
     </ul>
 </div>
 <div id="container">
-    <div id="displayPane"></div>
     <textarea id="textEntry">
 يا الطبيعة الواديك ساكن  مافي متلك قط في الأماكن
 يا جمال النال في ثراكن  يا حلاة البرعن أراكن
@@ -165,6 +162,7 @@ window.addEventListener('load', function() {
 إن درب الهوى  يا صديقي صعب
 من قيود الهوى  هل لنا من هرب
 </textarea>
+    <div id="displayPane"></div>
 </div>
 </body>
 </html>
