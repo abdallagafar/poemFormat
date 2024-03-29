@@ -13,8 +13,8 @@ function poemFormat(poem) {
     // =========================================================================
     const FREE = 1;                                                             // Free (non-column) style
     const SINGLE_COLUMN = 2;                                                    // Enforce a single column, for musdar, e.g.
-    const SMART_QUOTES = 4;                                                     // Replace straight quotes by smart quotes
-    const LTR = 8;                                                              // Set text direction to left-to-right
+    const MUSDAR = 4;                                                           // A special flag for musdar, which implies a width also
+    const SMART_QUOTES = 8;                                                     // Replace straight quotes by smart quotes
     const WRAP = 16;                                                            // Wrap wide verses between lines
     const HYPHENS2DASH = 32;                                                    // Replace --- by mdash — and -- by ndash –
     const WIDTH_LOCAL = 64;                                                     // Compute verse width locally for a block
@@ -23,10 +23,12 @@ function poemFormat(poem) {
     const RESET_COUNTER = 512;                                                  // Reset Counter to zero with each block
     const STAGGERED = 1024;                                                     // Split halves between lines and indent second half
     const EMPH = 2048;                                                          // Emphasize beits in accordance with chosen stylization, typically a different color
+    const LTR = 4096;                                                           // Set text direction to left-to-right
     const OPTIONS_DEFAULT = SMART_QUOTES + WRAP + HYPHENS2DASH;
     const FLAGS = {                                                             // Arabic keys for toggling the flags
         /* ABC */ 'حر'      : FREE,                                             // The dummy comments are to make the Arabic text align left.
         /* ABC */ 'عمود'    : SINGLE_COLUMN,
+        /* ABC */ 'مسدار'   : MUSDAR,
         /* ABC */ 'تنصيص'   : SMART_QUOTES,
         /* ABC */ 'EN'      : LTR,
         /* ABC */ 'طي'      : WRAP,
@@ -47,6 +49,7 @@ function poemFormat(poem) {
     const bGap = 50;                                                            // This is twice the sum of widths of bPrefix and bSuffix in CSS
     const bStaggerOffset = 75;                                                  // Should match CSS
     const bWidthMax = 450;                                                      // This should match the CSS declaration of the width of poemBody div less padding and bPrefix/bSuffix width
+    const MUSDAR_WIDTH = 270;                                                   // Empirical, assuming 16px font. TODO: these should be in em units.
     const elementSeparator = ' <-> ';                                           // A placeholder for separating identified parts during processing
     const partSeparator = ' <=> ';                                              // A placeholder for separating prefix/body/suffix of a part
     const titlePlcHldr = '<+>';                                                 // A placeholder for in-place footnotes, distinct from '+' characters that may exist in the text
@@ -59,9 +62,7 @@ function poemFormat(poem) {
     var flagsGlobal = (                                                         // Global flags (on/off switches)
         getData(
             (poem.getAttribute('data-params') || ''),                           // List of passed parameters, if any
-            paramsGlobal,                                                       // Adjust global parameters from the list
-            FLAGS,                                                              // List of Arabic flag names and their bit values
-            DATA_LABELS                                                         // List of Arabic parameters names and their entry names in the passed parameters object
+            paramsGlobal                                                        // Adjust global parameters from the list
         ) ^ OPTIONS_DEFAULT                                                     // User flags are merged with defaults rather than replace them
     );
         if (paramsGlobal.beitNo) flagsGlobal |= NUMBER;                         // Setting a beit number implies numbering
@@ -118,8 +119,6 @@ function poemFormat(poem) {
             flags ^= getData(
                 lines.replace(/^\s*\+*/, ''),                                   // Trim the "+" signs
                 paramsLocal,                                                    // Sent to retrieve local parameters, if any
-                FLAGS,                                                          // List of Arabic flag names and their bit values
-                DATA_LABELS                                                     // List of Arabic parameters names and their entry names in the passed parameters object
             );
             if (paramsLocal.beitNo) {                                           // If a beit number is specified
                 beitNo = paramsLocal.beitNo;                                    // Adjust beitNo
@@ -434,19 +433,19 @@ function poemFormat(poem) {
     // -------------------------------------------------------------------------
     // Extract parameters and return flags from a comma-separated list
     // -------------------------------------------------------------------------
-    function getData(list, params, flagValues, dataLabels) {
+    function getData(list, params) {
         var flags = 0;
         list
         .split(/[,،]/)                                                          // Split into array of entries
         .forEach(function(entry) {                                              // Process each entry
             entry = entry.trim();
             var keyVal;
-            if (flagValues.hasOwnProperty(entry)) {                             // If a valid flag key
-                flags ^= flagValues[entry];                                     // Set the flag bit
+            if (FLAGS.hasOwnProperty(entry)) {                                  // If a valid flag key
+                flags ^= FLAGS[entry];                                          // Set the flag bit
             }
             else if (keyVal = entry.match(/(.*?)\s*=\s*(.*)/)) {                // Extract key-value pairs
-                if (dataLabels.hasOwnProperty(keyVal[1])) {
-                    var key = dataLabels[ keyVal[1] ];                          // Translate to english name for easier code writing
+                if (DATA_LABELS.hasOwnProperty(keyVal[1])) {
+                    var key = DATA_LABELS[ keyVal[1] ];                         // Translate to english name for easier code writing
                     var value = keyVal[2];
                     if (typeof params[key] === "number") {
                         value = parseInt(east2westDigits(keyVal[2])) || 0;
@@ -455,6 +454,12 @@ function poemFormat(poem) {
                 }
             }
         });
+        if (flags & MUSDAR) {
+            flags |= SINGLE_COLUMN;                                             // Musdar implies single column
+            if (!params.bWidthMin) {                                            // And unless explicitly specified,
+                params.bWidthMin = MUSDAR_WIDTH;                                // Musdar also implies a width, unless explicitly set
+            }
+        }
         return flags;
     }
     // -------------------------------------------------------------------------
