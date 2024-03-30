@@ -22,23 +22,25 @@ function poemFormat(poem) {
     const GROSS = 256;                                                          // Number the beits in the whole page
     const RESET_COUNTER = 512;                                                  // Reset Counter to zero with each block
     const STAGGERED = 1024;                                                     // Split halves between lines and indent second half
-    const EMPH = 2048;                                                          // Emphasize beits in accordance with chosen stylization, typically a different color
-    const LTR = 4096;                                                           // Set text direction to left-to-right
+    const SKIP = 2048;                                                          // Skip counting beits in the current block
+    const EMPH = 4096;                                                          // Emphasize beits in accordance with chosen stylization, typically a different color
+    const LTR = 2048;                                                           // Set text direction to left-to-right
     const OPTIONS_DEFAULT = SMART_QUOTES + WRAP + HYPHENS2DASH;
     const FLAGS = {                                                             // Arabic keys for toggling the flags
         /* ABC */ 'حر'      : FREE,                                             // The dummy comments are to make the Arabic text align left.
         /* ABC */ 'عمود'    : SINGLE_COLUMN,
         /* ABC */ 'مسدار'   : MUSDAR,
         /* ABC */ 'تنصيص'   : SMART_QUOTES,
-        /* ABC */ 'EN'      : LTR,
         /* ABC */ 'طي'      : WRAP,
         /* ABC */ 'داش'     : HYPHENS2DASH,
         /* ABC */ 'عرض'     : WIDTH_LOCAL,
         /* ABC */ 'ترقيم'   : NUMBER,
         /* ABC */ 'إجمالي'  : GROSS,
+        /* ABC */ 'تصفير'   : RESET_COUNTER,
+        /* ABC */ 'فط'      : SKIP,
         /* ABC */ 'تظهير'   : EMPH,
         /* ABC */ 'تداخل'   : STAGGERED,
-        /* ABC */ 'تصفير'   : RESET_COUNTER
+        /* ABC */ 'EN'      : LTR
     };
     const DATA_LABELS = {
         /* ABC */ 'عرض'     : 'bWidthMin',
@@ -114,15 +116,18 @@ function poemFormat(poem) {
         if (!lines) { return ''; }                                              // Happens when starting with a separator line, e.g., for formatting.
         if (lines.match(/(?:^|\n) *\+{3,}.*?\n/)) {                             // Block separator, try to extract parameters, if any
             flags = flagsGlobal;                                                // Reset flags
-            if (flags & RESET_COUNTER) beitNo = 1;
+            if (flagsGlobal & RESET_COUNTER) beitNo = 1;
             paramsLocal = {bWidthMin: 0, beitNo: 0, classList: ''};             // Reset local parameters
-            flags ^= getData(
+            flags ^= getData(                                                   // Toggle designated flags, if any
                 lines.replace(/^\s*\+*/, ''),                                   // Trim the "+" signs
-                paramsLocal,                                                    // Sent to retrieve local parameters, if any
+                paramsLocal,                                                    // Retrieve local parameters, if any
             );
             if (paramsLocal.beitNo) {                                           // If a beit number is specified
                 beitNo = paramsLocal.beitNo;                                    // Adjust beitNo
                 flags |= NUMBER;                                                // And turn on numbering
+            }
+            if (flags & SKIP) {
+                flags ^= flags & NUMBER;                                        // Skipping implies no numbering
             }
             return '';                                                          // Done with separator, return for next block
         }
@@ -382,8 +387,10 @@ function poemFormat(poem) {
             formattedLines.push(
                 '<p class="' + bClass + '"' + bAttribs + '>' + line + '</p>'
             );
-            beitNo++;                                                           // Count new beit
-            poemFormatGrossCounter++;                                           // also update global count
+            if (!(flags & SKIP)) {
+                beitNo++;                                                       // Increment to next beitNo, and
+                poemFormatGrossCounter++;                                       // Count new beit
+            }
         }
         for (var i = 0; i < pWidth.length; i++) {
             var bWidth_i = pWidth[i] ? pWidth[i] * i + nGaps[i] * bGap : 0;     // Width to accommodate this number/width of parts
