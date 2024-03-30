@@ -165,7 +165,7 @@ function poemFormat(poem) {
             }
             line = line.trim();                                                 // Remove white space around
             var nParts =  0;                                                    // Number of parts
-            if (line === "") {                                                  // Empty line?
+            if (!line) {                                                        // Empty line?
                 formattedLines.push('<br>');                                    // Replace by a line break
                 continue;                                                       // Next!
             }
@@ -192,7 +192,7 @@ function poemFormat(poem) {
                 }
                 continue;                                                       // Next!
             }
-            else if (line == "...") {                                           // Formatted as vertical ellipses
+            else if (line === "..." || line === "…") {                          // Ellipses are interpreted as vertical ellipses
                 formattedLines.push('<p class="beit">⋮</p>');                   // &#x22ee;
                 continue;                                                       // Next!
             }
