@@ -24,7 +24,7 @@ function poemFormat(poem) {
     const STAGGERED = 1024;                                                     // Split halves between lines and indent second half
     const SKIP = 2048;                                                          // Skip counting beits in the current block
     const EMPH = 4096;                                                          // Emphasize beits in accordance with chosen stylization, typically a different color
-    const LTR = 2048;                                                           // Set text direction to left-to-right
+    const LTR = 8192;                                                           // Set text direction to left-to-right
     const OPTIONS_DEFAULT = SMART_QUOTES + WRAP + HYPHENS2DASH;
     const FLAGS = {                                                             // Arabic keys for toggling the flags
         /* ABC */ 'حر'      : FREE,                                             // The dummy comments are to make the Arabic text align left.
@@ -201,7 +201,17 @@ function poemFormat(poem) {
                 formattedLines.push('<p class="beit">⋮</p>');                   // &#x22ee;
                 continue;                                                       // Next!
             }
-            else if (line.match(/^\.\..*[^ .].*\.\.$/)) {                       // Lines delimited by two dots but not only dots are treated as closing halves.
+            // -----------------------------------------------------------------
+            // The following case count as beits, so here we include numbering
+            // -----------------------------------------------------------------
+            bAttribs += (
+                ' data-number="' + west2eastDigits(beitNo.toString()) + '"'
+            );
+            if ((flags & NUMBER) || (paramsLocal.beitNo)) {
+                bClass += " bNumbered";
+            }
+            // -----------------------------------------------------------------
+            if (line.match(/^\.\..*[^ .].*\.\.$/)) {                            // Lines delimited by two dots but not only dots are treated as closing halves.
                 line = (
                     line
                     .substring(2, line.length - 2)                              // Remove delimiters
@@ -221,6 +231,10 @@ function poemFormat(poem) {
                     + '</span>'
                     + '</p>'
                 );
+                if (!(flags & SKIP)) {
+                    beitNo++;                                                       // Increment to next beitNo, and
+                    poemFormatGrossCounter++;                                       // Count new beit
+                }
                 continue;                                                       // Next
             }
             // -----------------------------------------------------------------
@@ -236,13 +250,6 @@ function poemFormat(poem) {
             // 7. Restore tags
             // 8. Split again at marks inserted in 5
             // 9. Measure widths of cores of parts, now in final formatting
-            // -----------------------------------------------------------------
-            bAttribs += (
-                ' data-number="' + west2eastDigits(beitNo.toString()) + '"'
-            );
-            if ((flags & NUMBER) || (paramsLocal.beitNo)) {
-                bClass += " bNumbered";
-            }
             // -----------------------------------------------------------------
             // Collect inline tags and replace with all-symbols placeholders
             // to enable correct splitting of prefixes and suffixes
