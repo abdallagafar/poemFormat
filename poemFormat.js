@@ -166,7 +166,12 @@ function poemFormat(poem) {
             if (flags & EMPH) bClass += ' bEmph';
             if (line.match(/[^+]\+\+$/)) {                                      // A line ending with "++" is emphasized
                 if (!(flags & EMPH)) { bClass += ' bEmph' };
-                line = line.slice(0, -2).trim();                                // Remove the symbols and preceding spaces
+                line = line.slice(0, -2);                                       // Remove the symbols
+            }
+            var skipLineNo = false;
+            if (line.match(/(00|٠٠)$/)) {                                       // A line ending with "00" is skipped in numbering
+                line = line.slice(0, -2);                                       // Remove the symbols
+                skipLineNo = true;
             }
             line = line.trim();                                                 // Remove white space around
             var nParts =  0;                                                    // Number of parts
@@ -207,7 +212,7 @@ function poemFormat(poem) {
             bAttribs += (
                 ' data-number="' + west2eastDigits(beitNo.toString()) + '"'
             );
-            if ((flags & NUMBER) || (paramsLocal.beitNo)) {
+            if (((flags & NUMBER) || (paramsLocal.beitNo)) && !skipLineNo) {
                 bClass += " bNumbered";
             }
             // -----------------------------------------------------------------
@@ -231,9 +236,9 @@ function poemFormat(poem) {
                     + '</span>'
                     + '</p>'
                 );
-                if (!(flags & SKIP)) {
-                    beitNo++;                                                       // Increment to next beitNo, and
-                    poemFormatGrossCounter++;                                       // Count new beit
+                if (!(flags & SKIP) && !skipLineNo) {
+                    beitNo++;                                                   // Increment to next beitNo, and
+                    poemFormatGrossCounter++;                                   // Count new beit
                 }
                 continue;                                                       // Next
             }
@@ -394,7 +399,7 @@ function poemFormat(poem) {
             formattedLines.push(
                 '<p class="' + bClass + '"' + bAttribs + '>' + line + '</p>'
             );
-            if (!(flags & SKIP)) {
+            if (!(flags & SKIP) && !skipLineNo) {
                 beitNo++;                                                       // Increment to next beitNo, and
                 poemFormatGrossCounter++;                                       // Count new beit
             }
