@@ -12,23 +12,21 @@ function poemFormat(poem) {
     // Constants
     // =========================================================================
     const FREE = 1;                                                             // Free (non-column) style
-    const SINGLE_COLUMN = 2;                                                    // Enforce a single column, for musdar, e.g.
-    const MUSDAR = 4;                                                           // A special flag for musdar, which implies a width also
-    const SMART_QUOTES = 8;                                                     // Replace straight quotes by smart quotes
-    const WRAP = 16;                                                            // Wrap wide verses between lines
-    const HYPHENS2DASH = 32;                                                    // Replace --- by mdash — and -- by ndash –
-    const WIDTH_LOCAL = 64;                                                     // Compute verse width locally for a block
-    const NUMBER = 128;                                                         // Number the beits lines
-    const GROSS = 256;                                                          // Number the beits in the whole page
-    const RESET_COUNTER = 512;                                                  // Reset Counter to zero with each block
-    const STAGGERED = 1024;                                                     // Split halves between lines and indent second half
-    const SKIP = 2048;                                                          // Skip counting beits in the current block
-    const EMPH = 4096;                                                          // Emphasize beits in accordance with chosen stylization, typically a different color
-    const LTR = 8192;                                                           // Set text direction to left-to-right
+    const MUSDAR = 2;                                                           // A special flag for musdar, which implies a width also
+    const SMART_QUOTES = 4;                                                     // Replace straight quotes by smart quotes
+    const WRAP = 8;                                                             // Wrap wide verses between lines
+    const HYPHENS2DASH = 16;                                                    // Replace --- by mdash — and -- by ndash –
+    const WIDTH_LOCAL = 32;                                                     // Compute verse width locally for a block
+    const NUMBER = 64;                                                          // Number the beits lines
+    const GROSS = 128;                                                          // Number the beits in the whole page
+    const RESET_COUNTER = 256;                                                  // Reset Counter to zero with each block
+    const STAGGERED = 512;                                                      // Split halves between lines and indent second half
+    const SKIP = 1024;                                                          // Skip counting beits in the current block
+    const EMPH = 2048;                                                          // Emphasize beits in accordance with chosen stylization, typically a different color
+    const LTR = 4096;                                                           // Set text direction to left-to-right
     const OPTIONS_DEFAULT = SMART_QUOTES + WRAP + HYPHENS2DASH;
     const FLAGS = {                                                             // Arabic keys for toggling the flags
         /* ABC */ 'حر'      : FREE,                                             // The dummy comments are to make the Arabic text align left.
-        /* ABC */ 'عمود'    : SINGLE_COLUMN,
         /* ABC */ 'مسدار'   : MUSDAR,
         /* ABC */ 'تنصيص'   : SMART_QUOTES,
         /* ABC */ 'طي'      : WRAP,
@@ -278,14 +276,13 @@ function poemFormat(poem) {
                 );
                 return tagOpen;                                                 // This return is for inserting the matching opening tag in the list
             });
+            if (flags & MUSDAR) {
+                line = line.replace(/ {2,}/g, ' ');                             // Force a single column for musdar
+            }
             // -----------------------------------------------------------------
             // Split parts
             // -----------------------------------------------------------------
-            line = (
-                (flags & SINGLE_COLUMN) ?                                       // Single column requested?
-                ([line]) :                                                      // Insert whole line as a single part, otherwise:
-                (line.split(/\s{2,}/))                                          // Split at two or more spaces
-            );
+            line = line.split(/\s{2,}/);                                        // Split at two or more spaces
             nParts += line.length;                                              // The initial number of parts may be 1 for closing halves
             // -----------------------------------------------------------------
             // Pre-process parts
@@ -473,11 +470,8 @@ function poemFormat(poem) {
                 }
             }
         });
-        if (flags & MUSDAR) {
-            flags |= SINGLE_COLUMN;                                             // Musdar implies single column
-            if (!params.bWidthMin) {                                            // And unless explicitly specified,
-                params.bWidthMin = MUSDAR_WIDTH;                                // Musdar also implies a width, unless explicitly set
-            }
+        if ((flags & MUSDAR) && (!params.bWidthMin)) {                          // Unless explicitly specified,
+            params.bWidthMin = MUSDAR_WIDTH;                                    // Musdar implies a width
         }
         return flags;
     }
